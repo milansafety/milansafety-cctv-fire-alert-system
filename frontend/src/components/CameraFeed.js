@@ -1,100 +1,88 @@
 // frontend/src/components/CameraFeed.js
-
-// ✅ FIX: Saare imports ab file ke sabse upar hain.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { detectRedColor } from '../utils/detection';
+import ToggleSwitch from './ToggleSwitch'; // Import the new switch
 
 const CameraFeed = ({ camera, onDelete }) => {
     const videoRef = useRef(null);
-    const canvasRef = useRef(null);
-    const [lastAlertType, setLastAlertType] = useState(null);
-    const [lastAlertTime, setLastAlertTime] = useState(0);
+        const canvasRef = useRef(null);
+            const [isDetecting, setIsDetecting] = useState(true);
+                const [lastAlertTime, setLastAlertTime] = useState(0);
 
-    // Use cors-anywhere proxy to solve Mixed Content error
-    const proxiedUrl = `https://cors-anywhere.herokuapp.com/${camera.url}`;
+                    const proxiedUrl = `https://cors-anywhere.herokuapp.com/${camera.url}`;
 
-    const createAlert = useCallback(async (detectionType) => {
-        const { error } = await supabase
-            .from('alerts')
-            .insert([{ camera_id: camera.id, detection_type: detectionType, status: 'new' }]);
-        if (error) {
-            console.error('Error creating alert:', error);
-        } else {
-            setLastAlertType(detectionType);
-            setLastAlertTime(Date.now());
-        }
-    }, [camera.id]);
+                        const createAlert = useCallback(async (detectionType) => {
+                                if (Date.now() - lastAlertTime < 30000) return; // Debounce for 30s
+                                        setLastAlertTime(Date.now());
+                                                await supabase
+                                                            .from('alerts')
+                                                                        .insert([{ camera_id: camera.id, detection_type: detectionType, status: 'new' }]);
+                                                                            }, [camera.id, lastAlertTime]);
 
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return; // Guard clause
+                                                                                useEffect(() => {
+                                                                                        const video = videoRef.current;
+                                                                                                if (!isDetecting || !video) return;
 
-        video.src = proxiedUrl; // Use proxied URL for video element
-        video.crossOrigin = "Anonymous";
-        video.play().catch(e => console.error("Error playing hidden video for detection:", e));
+                                                                                                        video.src = proxiedUrl;
+                                                                                                                video.crossOrigin = "Anonymous";
+                                                                                                                        video.play().catch(e => console.error("Error playing hidden video:", e));
 
-        let animationFrameId;
+                                                                                                                                let animationFrameId;
 
-        const processFrame = () => {
-            const canvas = canvasRef.current;
-            if (video.paused || video.ended || !canvas) {
-                animationFrameId = requestAnimationFrame(processFrame);
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+                                                                                                                                        const processFrame = () => {
+                                                                                                                                                    const canvas = canvasRef.current;
+                                                                                                                                                                if (video.paused || video.ended || !canvas || !isDetecting) {
+                                                                                                                                                                                animationFrameId = requestAnimationFrame(processFrame);
+                                                                                                                                                                                                return;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        detectRedColor(ctx, canvas, video, createAlert);
+                                                                                                                                                                                                                                    animationFrameId = requestAnimationFrame(processFrame);
+                                                                                                                                                                                                                                            };
+                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                            const checkOpenCvReady = setInterval(() => {
+                                                                                                                                                                                                                                                                        if (window.cv && isDetecting) {
+                                                                                                                                                                                                                                                                                        clearInterval(checkOpenCvReady);
+                                                                                                                                                                                                                                                                                                        const canvas = canvasRef.current;
+                                                                                                                                                                                                                                                                                                                        const ctx = canvas.getContext('2d');
+                                                                                                                                                                                                                                                                                                                                        processFrame();
+                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                            }, 100);
 
-            const now = Date.now();
-            // Reset alert blocking after 30 seconds
-            if (lastAlertType && (now - lastAlertTime > 30000)) {
-                setLastAlertType(null);
-            }
+                                                                                                                                                                                                                                                                                                                                                                    return () => { // Kill switch
+                                                                                                                                                                                                                                                                                                                                                                                cancelAnimationFrame(animationFrameId);
+                                                                                                                                                                                                                                                                                                                                                                                            clearInterval(checkOpenCvReady);
+                                                                                                                                                                                                                                                                                                                                                                                                    };
+                                                                                                                                                                                                                                                                                                                                                                                                        }, [isDetecting, proxiedUrl, createAlert]);
 
-            if (!lastAlertType) {
-                if (detectRedColor(ctx, canvas, video)) {
-                    createAlert('red_color');
-                }
-            }
+                                                                                                                                                                                                                                                                                                                                                                                                            const handleDelete = () => {
+                                                                                                                                                                                                                                                                                                                                                                                                                    if (window.confirm(`Delete camera "${camera.name}"?`)) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                onDelete(camera.id);
+                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                                            };
 
-            animationFrameId = requestAnimationFrame(processFrame);
-        };
+                                                                                                                                                                                                                                                                                                                                                                                                                                                return (
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        <div className="camera-feed">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <h4>{camera.name}</h4>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <ToggleSwitch isOn={isDetecting} handleToggle={() => setIsDetecting(!isDetecting)} onColor="#0a84ff" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <button className="delete-camera-btn" onClick={handleDelete}>×</button>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <img src={proxiedUrl} alt={`Live feed from ${camera.name}`} />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <video ref={videoRef} style={{ display: 'none' }}></video>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            );
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            };
 
-        const checkOpenCvReady = setInterval(() => {
-            if (window.cv) {
-                clearInterval(checkOpenCvReady);
-                processFrame();
-            }
-        }, 100);
-
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            clearInterval(checkOpenCvReady);
-        };
-    }, [proxiedUrl, createAlert, lastAlertType, lastAlertTime]);
-
-    const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete camera "${camera.name}"?`)) {
-            onDelete(camera.id);
-        }
-    };
-
-    return (
-        <div className="camera-feed">
-            <h4>{camera.name}</h4>
-            <button className="delete-camera-btn" onClick={handleDelete}>×</button>
-            
-            <img 
-                src={proxiedUrl} 
-                alt={`Live feed from ${camera.name}`}
-            />
-            
-            <video ref={videoRef} style={{ display: 'none' }}></video>
-            <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-        </div>
-    );
-};
-
-export default CameraFeed;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // Updated detection.js to pass createAlert function
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            export function detectRedColor(ctx, canvas, video, createAlert) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // ... rest of the detection logic ...
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (percentage > 1) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            console.log("Red color detected!", percentage);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    createAlert('red_color'); // Call the alert function
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            return true;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    // ...
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    export default CameraFeed;
