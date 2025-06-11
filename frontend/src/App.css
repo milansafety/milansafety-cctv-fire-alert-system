@@ -1,15 +1,183 @@
-/* src/App.css */
-.App { text-align: center; }
-.dashboard header { background: #333; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
-.dashboard main { display: flex; }
-.left-panel { flex: 3; padding: 1rem; }
-.right-panel { flex: 1; padding: 1rem; border-left: 1px solid #ccc; background: #f4f4f4; height: 100vh; overflow-y: auto; }
-.camera-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; }
-.camera-feed, .alerts-list { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; }
-.add-camera-form { margin-bottom: 1rem; }
-.add-camera-form input { padding: 8px; margin-right: 8px; }
-.alerts-list ul { list-style: none; padding: 0; }
-.alert-item { background: #fff; border: 1px solid red; padding: 1rem; margin-bottom: 1rem; border-radius: 5px; }
-.alert-item.status-confirmed { border-color: green; }
-.alert-item.status-ignored { border-color: grey; opacity: 0.7; }
+/* frontend/src/App.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-color: #121212;
+  --surface-color: #1e1e1e;
+  --primary-color: #bb86fc;
+  --text-color: #e1e1e1;
+  --border-color: #333;
+  --error-color: #cf6679;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.App {
+  text-align: center;
+}
+
+/* --- Dashboard Layout --- */
+.dashboard header {
+  background: var(--surface-color);
+  color: var(--text-color);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.dashboard header button {
+  background-color: var(--primary-color);
+  color: #000;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.dashboard header button:hover {
+  background-color: #a062e8;
+}
+
+.dashboard main {
+  display: flex;
+  padding: 1.5rem;
+  gap: 1.5rem;
+}
+
+/* --- Responsive Layout for Mobile --- */
+@media (max-width: 900px) {
+  .dashboard main {
+    flex-direction: column;
+  }
+}
+
+
+/* --- Panels --- */
+.left-panel {
+  flex: 3;
+}
+.right-panel {
+  flex: 1;
+  background-color: var(--surface-color);
+  padding: 1.5rem;
+  border-radius: 12px;
+  align-self: flex-start; /* Stop stretching */
+}
+
+/* --- Camera Grid --- */
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* --- Camera Feed Card --- */
+.camera-feed {
+  background: var(--surface-color);
+  padding: 1rem;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.camera-feed h4 {
+  margin: 0 0 0.5rem 0;
+  text-align: left;
+}
+.camera-feed img {
+  width: 100%;
+  border-radius: 8px;
+  background-color: #000;
+}
+.delete-camera-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Add Camera Form --- */
+.add-camera-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.add-camera-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+  color: var(--text-color);
+}
+.add-camera-form button {
+  background-color: var(--primary-color);
+  color: #000;
+  font-weight: 600;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* --- Alerts List --- */
+.alerts-list h2, .left-panel h2 {
+  text-align: left;
+  margin-top: 0;
+}
+.alerts-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.alert-item {
+  background: #333;
+  border-left: 5px solid var(--error-color);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  text-align: left;
+}
+.alert-item.status-confirmed { border-left-color: #03dac6; }
+.alert-item.status-ignored { border-left-color: #777; }
 .alert-actions button { margin: 5px; }
+
+.stop-alarm-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--error-color);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}

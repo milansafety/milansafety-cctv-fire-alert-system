@@ -1,4 +1,3 @@
-// frontend/src/pages/Dashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import CameraFeed from '../components/CameraFeed';
@@ -15,12 +14,26 @@ const Dashboard = ({ session }) => {
             .eq('user_id', session.user.id);
 
         if (error) console.error('Error fetching cameras:', error);
-        else setCameras(data);
+        else setCameras(data || []);
     }, [session.user.id]);
 
     useEffect(() => {
         fetchCameras();
     }, [fetchCameras]);
+
+    const handleDeleteCamera = async (cameraId) => {
+        const { error } = await supabase
+            .from('cameras')
+            .delete()
+            .eq('id', cameraId);
+
+        if (error) {
+            alert("Error deleting camera: " + error.message);
+        } else {
+            // Refresh camera list after deleting
+            fetchCameras();
+        }
+    };
     
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -38,7 +51,11 @@ const Dashboard = ({ session }) => {
                     <AddCameraForm onCameraAdded={fetchCameras} userId={session.user.id} />
                     <div className="camera-grid">
                         {cameras.map(camera => (
-                            <CameraFeed key={camera.id} camera={camera} />
+                            <CameraFeed 
+                                key={camera.id} 
+                                camera={camera} 
+                                onDelete={handleDeleteCamera} 
+                            />
                         ))}
                     </div>
                 </div>
