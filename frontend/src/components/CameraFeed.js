@@ -1,4 +1,7 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+// frontend/src/components/CameraFeed.js
+
+// ✅ FIX: Saare imports ab file ke sabse upar hain.
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { detectRedColor } from '../utils/detection';
 
@@ -8,7 +11,7 @@ const CameraFeed = ({ camera, onDelete }) => {
     const [lastAlertType, setLastAlertType] = useState(null);
     const [lastAlertTime, setLastAlertTime] = useState(0);
 
-    // ✅ FIX: Use cors-anywhere proxy to solve Mixed Content error
+    // Use cors-anywhere proxy to solve Mixed Content error
     const proxiedUrl = `https://cors-anywhere.herokuapp.com/${camera.url}`;
 
     const createAlert = useCallback(async (detectionType) => {
@@ -25,6 +28,8 @@ const CameraFeed = ({ camera, onDelete }) => {
 
     useEffect(() => {
         const video = videoRef.current;
+        if (!video) return; // Guard clause
+
         video.src = proxiedUrl; // Use proxied URL for video element
         video.crossOrigin = "Anonymous";
         video.play().catch(e => console.error("Error playing hidden video for detection:", e));
@@ -43,7 +48,12 @@ const CameraFeed = ({ camera, onDelete }) => {
             canvas.height = video.videoHeight;
 
             const now = Date.now();
-            if (lastAlertType !== 'red_color' || now - lastAlertTime > 30000) {
+            // Reset alert blocking after 30 seconds
+            if (lastAlertType && (now - lastAlertTime > 30000)) {
+                setLastAlertType(null);
+            }
+
+            if (!lastAlertType) {
                 if (detectRedColor(ctx, canvas, video)) {
                     createAlert('red_color');
                 }
@@ -76,19 +86,15 @@ const CameraFeed = ({ camera, onDelete }) => {
             <h4>{camera.name}</h4>
             <button className="delete-camera-btn" onClick={handleDelete}>×</button>
             
-            {/* Display feed using an img tag with the proxied URL */}
             <img 
                 src={proxiedUrl} 
                 alt={`Live feed from ${camera.name}`}
             />
             
-            {/* Hidden video and canvas for detection processing */}
             <video ref={videoRef} style={{ display: 'none' }}></video>
             <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
         </div>
     );
 };
 
-// We need to add useState for this component
-import { useState } from 'react';
 export default CameraFeed;
