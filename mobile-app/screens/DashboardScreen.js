@@ -15,22 +15,44 @@ const DashboardScreen = ({ navigation }) => {
     });
   }, []);
 
-  const fetchCameras = useCallback(async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-        .from('cameras')
-        .select('*')
-        .eq('user_id', user.id);
-    if (error) Alert.alert("Error", "Could not fetch cameras.");
-    else setCameras(data);
-  }, [user]);
+  // ✅ FIX: useFocusEffect ka sahi istemal
+  useFocusEffect(
+    useCallback(() => {
+      const fetchCameras = async () => {
+        if (!user) return;
+        const { data, error } = await supabase
+            .from('cameras')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+        if (error) Alert.alert("Error", "Could not fetch cameras.");
+        else setCameras(data);
+      };
 
-  useFocusEffect(fetchCameras);
+      fetchCameras();
+    }, [user]) // Yeh effect tab dobara chalega jab user ki value badlegi
+  );
 
   const deleteCamera = async (id) => {
-    const { error } = await supabase.from('cameras').delete().eq('id', id);
-    if (error) Alert.alert("Error", "Could not delete camera.");
-    else fetchCameras(); // Refresh list
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this camera?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          onPress: async () => {
+            const { error } = await supabase.from('cameras').delete().eq('id', id);
+            if (error) Alert.alert("Error", "Could not delete camera.");
+            else {
+              // Refresh list locally to feel faster
+              setCameras(prevCameras => prevCameras.filter(c => c.id !== id));
+            }
+          },
+          style: 'destructive'
+        }
+      ]
+    );
   };
 
   return (
@@ -38,7 +60,7 @@ const DashboardScreen = ({ navigation }) => {
       <Text style={styles.title}>Dashboard</Text>
       
       <View style={styles.buttonContainer}>
-        <Button title="Scan QR to Add" onPress={() => navigation.navigate('Scanner')} />
+        <Button title="Scan QR to Add Camera" onPress={() => navigation.navigate('Scanner')} />
       </View>
 
       <FlatList
@@ -61,6 +83,7 @@ const DashboardScreen = ({ navigation }) => {
   );
 };
 
+// ... Styles wahi rahenge
 const styles = StyleSheet.create({
     container: { flex: 1, padding: 20, backgroundColor: '#121212' },
     title: { fontSize: 28, fontWeight: 'bold', color: 'white', textAlign: 'center', marginBottom: 20, marginTop: 40, },

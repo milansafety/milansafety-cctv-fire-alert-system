@@ -1,7 +1,7 @@
 // screens/ScannerScreen.js
 import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Button, Alert } from 'react-native';
-import { Camera } from 'expo-camera';
+import { Camera } from 'expo-camera'; // ✅ FIX: This is the correct way to import
 import { supabase } from '../lib/supabase';
 
 export default function ScannerScreen({ navigation }) {
@@ -9,15 +9,21 @@ export default function ScannerScreen({ navigation }) {
   const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    const getCameraPermissions = async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-    })();
+    };
+    getCameraPermissions();
   }, []);
 
-  const handleBarCodeScanned = async ({ type, data }) => {
+  const handleBarCodeScanned = async ({ data }) => {
     setScanned(true);
-    const user = (await supabase.auth.getUser()).data.user;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        Alert.alert("Error", "You must be logged in to add a camera.");
+        navigation.goBack();
+        return;
+    }
 
     Alert.prompt(
         "Add New Camera",
@@ -33,7 +39,8 @@ export default function ScannerScreen({ navigation }) {
                         .insert([{ name: cameraName, url: data, user_id: user.id }]);
                     
                     if (error) {
-                        Alert.alert("Error", "Could not save the camera.");
+                        Alert.alert("Error", `Could not save the camera: ${error.message}`);
+                        setScanned(false);
                     } else {
                         Alert.alert("Success", "Camera added successfully!");
                         navigation.goBack();
@@ -41,39 +48,66 @@ export default function ScannerScreen({ navigation }) {
                 },
             },
         ],
-        'plain-text', // Input type
-        'My Camera' // Default value for input
+        'plain-text',
+        'My Camera'
     );
   };
 
-  if (hasPermission === null) return <Text style={styles.infoText}>Requesting for camera permission...</Text>;
-  if (hasPermission === false) return <Text style={styles.infoText}>No access to camera. Please enable it in settings.</Text>;
+  if (hasPermission === null) {
+      return (
+        <View style={styles.infoContainer}><Text style={styles.infoText}>Requesting camera permission...</Text></View>
+      );
+  }
+  if (hasPermission === false) {
+      return (
+          <View style={styles.infoContainer}><Text style={styles.infoText}>No access to camera. Please enable it in your phone's settings.</Text></View>
+      );
+  }
 
   return (
     <View style={styles.container}>
       <Camera
         onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
         style={StyleSheet.absoluteFillObject}
+        barCodeScannerSettings={{
+            barCodeTypes: ['qr'],
+        }}
       />
-      <View style={styles.layerTop}>
-        <Text style={styles.description}>Scan a QR Code</Text>
+      <View style={styles.overlay}>
+        <Text style={styles.description}>Scan QR Code</Text>
+        <View style={styles.scannerBox} />
       </View>
-      <View style={styles.layerCenter}>
-        <View style={styles.focused} />
-      </View>
-      <View style={styles.layerBottom}>
-        {scanned && <Button title={'Tap to Scan Again'} onPress={() => setScanned(false)} />}
-      </View>
+      {scanned && <View style={styles.scanAgainButton}><Button title={'Tap to Scan Again'} onPress={() => setScanned(false)} /></View>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, flexDirection: 'column', backgroundColor: 'black' },
-    infoText: { flex: 1, color: 'white', textAlign: 'center', textAlignVertical: 'center'},
-    layerTop: { flex: 0.2, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-    layerCenter: { flex: 0.6, flexDirection: 'row' },
-    focused: { flex: 0.8, borderColor: 'white', borderWidth: 2, borderRadius: 10, alignSelf: 'center', aspectRatio: 1 },
-    layerBottom: { flex: 0.2, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' },
-    description: { color: 'white', fontSize: 18 },
+    container: { flex: 1, backgroundColor: 'black' },
+    infoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
+    infoText: { color: 'white', fontSize: 16 },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    description: {
+        fontSize: 18,
+        color: 'white',
+        position: 'absolute',
+        top: '20%',
+    },
+    scannerBox: {
+        width: 250,
+        height: 250,
+        borderWidth: 2,
+        borderColor: 'white',
+        borderRadius: 10,
+    },
+    scanAgainButton: {
+        position: 'absolute',
+        bottom: 50,
+        left: 20,
+        right: 20,
+    }
 });
