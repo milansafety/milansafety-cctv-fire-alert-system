@@ -1,7 +1,8 @@
 // screens/ScannerScreen.js
 import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Button, Alert } from 'react-native';
-import { Camera } from 'expo-camera'; // ✅ FIX: This is the correct way to import
+// ✅ FIX: This is the correct way to import 'Camera' from 'expo-camera'
+import { Camera } from 'expo-camera'; 
 import { supabase } from '../lib/supabase';
 
 export default function ScannerScreen({ navigation }) {
@@ -10,6 +11,7 @@ export default function ScannerScreen({ navigation }) {
 
   useEffect(() => {
     const getCameraPermissions = async () => {
+      // Use the correctly imported Camera object
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     };
@@ -82,6 +84,7 @@ export default function ScannerScreen({ navigation }) {
   );
 }
 
+// ... Styles wahi rahenge
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'black' },
     infoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
@@ -94,6 +97,10 @@ const styles = StyleSheet.create({
     description: {
         fontSize: 18,
         color: 'white',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 5,
         position: 'absolute',
         top: '20%',
     },
